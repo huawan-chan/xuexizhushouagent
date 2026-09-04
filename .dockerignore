@@ -1,0 +1,12 @@
+# 不进镜像/构建上下文
+.git
+.gitignore
+.env
+**/.env
+data
+.venv
+venv
+**/__pycache__
+*.pyc
+*.db
+.codebuddy
