@@ -1,0 +1,42 @@
+# 一键起 Agent(Chainlit Web UI)。
+# 注意：先 cp .env.example .env 并填入 GROQ_API_KEY，再执行 docker compose up -d
+services:
+  chainlit:
+    image: python:3.12-slim
+    container_name: tutor-agent-chainlit
+    working_dir: /app
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - .:/app
+      - agent_data:/app/data
+    command: >
+      sh -c "pip install -q --no-cache-dir -r /app/requirements.txt &&
+             chainlit run /app/web/chainlit_app.py --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  # 可选：FastAPI 版(SSE)，端口 8001。用不到可注释掉本服务
+  fastapi:
+    image: python:3.12-slim
+    container_name: tutor-agent-fastapi
+    working_dir: /app
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - .:/app
+      - agent_data:/app/data
+    command: >
+      sh -c "pip install -q --no-cache-dir -r /app/requirements.txt &&
+             python -m web.fastapi_app"
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+    depends_on:
+      - chainlit
+
+volumes:
+  agent_data:

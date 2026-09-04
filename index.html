@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>知友 AI · 学习辅导 / 科普问答</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>"/>
+<style>
+  :root{
+    --bg:#070d1a; --bg2:#0b1526; --panel:#0f1c30; --panel2:#142338;
+    --line:#1e3350; --text:#e6eefb; --muted:#8ba0bd;
+    --acc:#4da3ff; --acc2:#7c6bff; --ok:#3ddc97; --warn:#ffb454; --err:#ff6b6b;
+    --user-grad:linear-gradient(135deg,#2563eb,#7c3aed);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(1000px 500px at 85% -10%, rgba(124,107,255,.22), transparent 60%),
+      radial-gradient(900px 480px at -10% 15%, rgba(77,163,255,.18), transparent 60%),
+      var(--bg);
+    color:var(--text); font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    display:flex; flex-direction:column; height:100vh; overflow:hidden;
+  }
+  /* ---------- 顶栏 ---------- */
+  header{
+    display:flex; align-items:center; gap:12px; padding:12px 20px;
+    background:rgba(10,18,34,.72); backdrop-filter:blur(12px); border-bottom:1px solid var(--line);
+  }
+  .logo{width:38px;height:38px;border-radius:11px;background:var(--user-grad);display:grid;place-items:center;font-size:20px;box-shadow:0 4px 18px rgba(99,102,241,.4);flex:none}
+  header h1{font-size:17px;letter-spacing:.3px}
+  header .sub{color:var(--muted);font-size:12.5px}
+  .spacer{flex:1}
+  .status{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);padding:6px 12px;border-radius:999px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--warn)}
+  .dot.on{background:var(--ok);box-shadow:0 0 10px var(--ok)}
+  .dot.off{background:var(--err)}
+  .iconbtn{
+    background:var(--panel2);border:1px solid var(--line);color:var(--text);width:34px;height:34px;border-radius:9px;
+    cursor:pointer;font-size:16px;transition:.15s;display:grid;place-items:center
+  }
+  .iconbtn:hover{border-color:var(--acc)}
+  /* ---------- 聊天区 ---------- */
+  main{flex:1;overflow-y:auto;scroll-behavior:smooth}
+  .wrap{max-width:860px;margin:0 auto;padding:20px 18px 30px;display:flex;flex-direction:column;gap:14px}
+  .msg{display:flex;gap:10px;animation:rise .25s ease}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .avatar{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-size:15px;flex:none;margin-top:2px}
+  .bot .avatar{background:var(--panel2);border:1px solid var(--line)}
+  .user{flex-direction:row-reverse}
+  .user .avatar{background:var(--user-grad);box-shadow:0 3px 12px rgba(99,102,241,.35)}
+  .bubble{padding:11px 15px;border-radius:15px;font-size:15px;line-height:1.7;max-width:82%;overflow-wrap:break-word;word-break:break-word}
+  .bot .bubble{background:var(--panel);border:1px solid var(--line);border-top-left-radius:4px;white-space:normal}
+  .user .bubble{background:var(--user-grad);border-top-right-radius:4px;white-space:pre-wrap}
+  .mode{display:inline-block;font-size:11.5px;color:var(--acc);background:rgba(77,163,255,.12);border:1px solid rgba(77,163,255,.35);padding:2px 9px;border-radius:999px;margin-bottom:8px}
+  .mode.sci{color:#c4b5fd;background:rgba(139,92,246,.14);border-color:rgba(139,92,246,.4)}
+  /* markdown 化后的文本样式 */
+  .bubble p{margin:6px 0}
+  .bubble pre{background:#050a14;border:1px solid var(--line);border-radius:10px;padding:10px 13px;overflow-x:auto;font-size:13px;line-height:1.55;margin:8px 0;font-family:"Cascadia Code",Consolas,monospace}
+  .bubble code{background:rgba(77,163,255,.12);border:1px solid rgba(77,163,255,.25);padding:1px 6px;border-radius:6px;font-size:13.5px;font-family:"Cascadia Code",Consolas,monospace}
+  .bubble pre code{background:none;border:0;padding:0;font-size:13px}
+  .bubble strong{color:#fff;font-weight:650}
+  .qt{color:#c9b8ff;background:rgba(124,107,255,.1);border-left:3px solid var(--acc2);padding:5px 11px;border-radius:0 8px 8px 0;margin:7px 0;font-size:13.5px}
+  .caret{display:inline-block;width:8px;height:16px;background:var(--acc);margin-left:2px;vertical-align:-2px;animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  /* ---------- 欢迎 Hero ---------- */
+  .hero{margin:auto;text-align:center;padding:30px 10px;max-width:620px}
+  .hero .big{width:74px;height:74px;border-radius:22px;background:var(--user-grad);margin:0 auto 20px;display:grid;place-items:center;font-size:38px;box-shadow:0 10px 40px rgba(99,102,241,.45)}
+  .hero h2{font-size:24px;margin-bottom:8px}
+  .hero p{color:var(--muted);font-size:14.5px;line-height:1.8;margin-bottom:22px}
+  .chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+  .chip{
+    background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px 16px;border-radius:999px;
+    font-size:13.5px;cursor:pointer;transition:.15s
+  }
+  .chip:hover{border-color:var(--acc);transform:translateY(-2px);box-shadow:0 6px 18px rgba(77,163,255,.15)}
+  .hint{margin-top:26px;font-size:12px;color:#5f7591;line-height:1.9}
+  .hint code{background:rgba(77,163,255,.1);padding:1px 6px;border-radius:5px;font-size:11.5px}
+  /* ---------- 输入栏 ---------- */
+  footer{padding:10px 18px 16px}
+  .bar{max-width:860px;margin:0 auto;display:flex;gap:10px;align-items:flex-end;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:0 -8px 30px rgba(0,0,0,.25)}
+  textarea{
+    flex:1;resize:none;border:0;outline:0;background:transparent;color:var(--text);font-size:15px;line-height:1.5;
+    font-family:inherit;max-height:160px;min-height:24px;padding:5px 8px
+  }
+  #send{
+    background:var(--user-grad);color:#fff;border:0;border-radius:12px;padding:10px 20px;font-size:15px;font-weight:650;
+    cursor:pointer;transition:.15s;flex:none
+  }
+  #send:hover{filter:brightness(1.12)}
+  #send:disabled{opacity:.5;cursor:not-allowed}
+  /* ---------- 设置面板 ---------- */
+  #cfg{
+    display:none;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;gap:10px;
+    margin:0 auto 10px;max-width:860px;flex-direction:column
+  }
+  #cfg.open{display:flex}
+  #cfg label{font-size:13px;color:var(--muted)}
+  #cfg .row{display:flex;gap:8px}
+  #cfg input{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:9px;color:var(--text);padding:8px 12px;font-size:13.5px;outline:0}
+  #cfg input:focus{border-color:var(--acc)}
+  #cfg button{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:8px 16px;cursor:pointer;font-size:13px}
+  #cfg button.primary{background:var(--user-grad);border:0}
+  #cfg .note{font-size:12px;color:var(--warn);line-height:1.7}
+  @media (max-width:640px){
+    .bubble{max-width:88%}
+    header .sub{display:none}
+    .wrap{padding:14px 10px 20px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🧠</div>
+  <div>
+    <h1>知友 AI</h1>
+    <div class="sub">辅导讲题 · 苏格拉底引导 | 科普问答 · What-Why-Wow</div>
+  </div>
+  <div class="spacer"></div>
+  <span class="status" id="status"><span class="dot" id="dot"></span><span id="statusText">检测后端…</span></span>
+  <button class="iconbtn" id="cfgBtn" title="后端设置">⚙️</button>
+  <button class="iconbtn" id="newBtn" title="新会话">🗑</button>
+</header>
+
+<main id="main">
+  <div class="wrap" id="chat">
+    <div class="hero" id="hero">
+      <div class="big">🧠</div>
+      <h2>把问题交给我，答案你自己想出来</h2>
+      <p>我是「知友」—— <b>教做题不直接给答案</b>，会一步步提问引导你开窍；<br/>
+      问科普时按「是什么 → 为什么 → 哇原来如此」讲得有趣又有料。</p>
+      <div class="chips" id="chips"></div>
+      <div class="hint">
+        这是演示页面：<b>双击打开只能看界面</b>，要真正对话请运行后端<br/>
+        <code>python -m web.fastapi_app</code> 后刷新本页；或点右上 ⚙️ 填入后端地址。
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="cfg">
+  <label>后端 API 地址（留空 = 当前网页同源，例如 http://127.0.0.1:8001）</label>
+  <div class="row">
+    <input id="apiUrl" placeholder="http://127.0.0.1:8001"/>
+    <button id="saveCfg" class="primary">保存</button>
+    <button id="closeCfg">关闭</button>
+  </div>
+  <div class="note">把 HTML 单独放 GitHub Pages 时：先运行后端，再把完整地址（含端口）填到这里并保存，即可跨机器对话。</div>
+</div>
+
+<footer>
+  <div class="bar">
+    <textarea id="input" rows="1" placeholder="输入题目、作业、或任何“为什么”…（Enter 发送 / Shift+Enter 换行）"></textarea>
+    <button id="send">发送</button>
+  </div>
+</footer>
+
+<script>
+"use strict";
+/* ================= 状态 ================= */
+const LS_KEY = "zhiyou_sid", LS_API = "zhiyou_api";
+let sid = localStorage.getItem(LS_KEY);
+if (!sid){ sid = "web-" + Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36); localStorage.setItem(LS_KEY, sid); }
+let apiBase = (localStorage.getItem(LS_API) || "").trim();
+
+const $ = id => document.getElementById(id);
+const chat = $("chat"), hero = $("hero");
+const input = $("input"), sendBtn = $("send"), statusEl = $("status"), dot = $("dot");
+
+/* ================= 工具 ================= */
+function api(path){
+  const base = apiBase ? apiBase.replace(/\/+$/,"") : "";
+  return base + path;
+}
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+/* 极简 Markdown（安全：先整体转义，再做格式替换） */
+function md(t){
+  let s = esc(t);
+  s = s.replace(/```[^\n]*\n?([\s\S]*?)```/g, (_, c) => "<pre><code>" + c.replace(/^\n|\n$/g,"") + "</code></pre>");
+  s = s.replace(/(^|\n)&gt; (.*)/g, "$1<div class='qt'>$2</div>");
+  s = s.replace(/`([^`\n]+)`/g, "<code>$1</code>");
+  s = s.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/\*([^*\n]+)\*/g, "<em>$1</em>");
+  s = s.replace(/\n{2,}/g, "\n\n").split("\n").filter(l => !/^\s*$/.test(l) || l.includes("<pre>")).join("\n");
+  s = s.replace(/\n/g, "<br/>");
+  return s;
+}
+
+function addBubble(role){
+  const m = document.createElement("div");
+  m.className = "msg " + role;
+  m.innerHTML = '<div class="avatar">' + (role === "user" ? "🙋" : "🧠") + '</div><div class="bubble"></div>';
+  chat.insertBefore(m, hero);
+  return m.querySelector(".bubble");
+}
+function scrollBottom(){ main.scrollTop = main.scrollHeight; }
+function setStatus(state, text){
+  dot.className = "dot" + (state === "on" ? " on" : state === "off" ? " off" : "");
+  $("statusText").textContent = text;
+}
+
+/* ================= 消息渲染（带打字光标 + 节流 md 渲染） ================= */
+let curBubble = null, curRaw = "", curTimer = null;
+function openMsg(mode){
+  const b = addBubble("bot");
+  const tag = document.createElement("div");
+  tag.className = "mode" + (mode === "science" ? " sci" : "");
+  tag.textContent = mode === "tutor" ? "📚 学习辅导 · 苏格拉底引导" : "🔭 科普问答 · What-Why-Wow";
+  b.appendChild(tag);
+  curBubble = b; curRaw = "";
+  b.innerHTML = b.innerHTML + '<span class="caret"></span>';
+}
+function paint(){
+  if (!curBubble) return;
+  curBubble.innerHTML = curBubble.querySelector(".mode").outerHTML + md(curRaw) + '<span class="caret"></span>';
+  scrollBottom();
+}
+function renderSoon(){ clearTimeout(curTimer); curTimer = setTimeout(paint, 50); }
+
+/* ================= SSE 流式对话 ================= */
+async function send(text){
+  if (!text) return;
+  hero.style.display = "none";
+  addBubble("user").textContent = text;
+  sendBtn.disabled = true; input.disabled = true;
+  const url = api("/api/chat/stream?session_id=" + encodeURIComponent(sid) + "&message=" + encodeURIComponent(text));
+  openMsg("tutor");
+  try{
+    setStatus("on", "对话中…");
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const reader = resp.body.getReader(), dec = new TextDecoder();
+    let buf = "";
+    while (true){
+      const {done, value} = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, {stream: true});
+      let i;
+      while ((i = buf.indexOf("\n\n")) >= 0){
+        const chunk = buf.slice(0, i); buf = buf.slice(i + 2);
+        const line = chunk.split("\n").find(l => l.startsWith("data:"));
+        if (!line) continue;
+        let ev;
+        try { ev = JSON.parse(line.slice(5)); } catch(e){ continue; }
+        handleEvent(ev);
+      }
+    }
+    setStatus("on", "后端在线");
+  }catch(e){
+    if (curBubble){
+      curBubble.innerHTML = curBubble.querySelector(".mode").outerHTML +
+        md("\n\n> 连不上后端 😢 请先启动：**python -m web.fastapi_app**\n> 或在右上角 ⚙️ 填写后端地址，然后刷新。\n\n(" + e.message + ")");
+    }
+    setStatus("off", "后端离线");
+  }finally{
+    sendBtn.disabled = false; input.disabled = false;
+    input.focus();
+    if (curBubble){ curBubble.innerHTML = curBubble.innerHTML.replace('<span class="caret"></span>', ""); }
+    renderSoon();
+  }
+}
+function handleEvent(ev){
+  switch (ev.type){
+    case "start":
+      if (curBubble){
+        const tag = curBubble.querySelector(".mode");
+        if (tag){
+          tag.className = "mode" + (ev.mode === "science" ? " sci" : "");
+          tag.textContent = ev.mode === "tutor" ? "📚 学习辅导 · 苏格拉底引导" : "🔭 科普问答 · What-Why-Wow";
+        }
+      }
+      break;
+    case "tool":
+      curRaw += "\n\n> 🔧 正在调用「" + ev.tool + "」…\n\n";
+      renderSoon();
+      break;
+    case "tool_result":
+      curRaw += "\n\n> ✅ 工具「" + ev.tool + "」已返回结果\n\n";
+      renderSoon();
+      break;
+    case "token":
+      curRaw += ev.text;
+      renderSoon();
+      break;
+    case "done":
+      break;
+    case "error":
+      curRaw += "\n\n> 服务端错误：" + ev.detail + "\n";
+      renderSoon();
+      break;
+  }
+}
+
+/* ================= 示例问题 ================= */
+const SAMPLES = [
+  "教我解这道题：x² − 5x + 6 = 0，别直接给答案",
+  "为什么天空是蓝色的？",
+  "按我讲义里的方法讲讲受力分析（如果没建知识库就直说）"
+];
+const chipsEl = $("chips");
+SAMPLES.forEach(s => {
+  const c = document.createElement("button");
+  c.className = "chip"; c.textContent = s;
+  c.onclick = () => { input.value = s; send(s); };
+  chipsEl.appendChild(c);
+});
+
+/* ================= 设置面板 ================= */
+$("cfgBtn").onclick = () => {
+  $("cfg").classList.toggle("open");
+  $("apiUrl").value = apiBase;
+};
+$("closeCfg").onclick = () => $("cfg").classList.remove("open");
+$("saveCfg").onclick = () => {
+  apiBase = $("apiUrl").value.trim().replace(/\/+$/,"");
+  localStorage.setItem(LS_API, apiBase);
+  $("cfg").classList.remove("open");
+  checkHealth();
+};
+$("newBtn").onclick = () => {
+  sid = "web-" + Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36);
+  localStorage.setItem(LS_KEY, sid);
+  chat.querySelectorAll(".msg").forEach(m => m.remove());
+  hero.style.display = "";
+  input.value = ""; input.focus();
+};
+
+/* ================= 自动增高 + Enter 发送 ================= */
+input.addEventListener("input", () => {
+  input.style.height = "auto";
+  input.style.height = Math.min(input.scrollHeight, 160) + "px";
+});
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); send(input.value.trim()); input.value = ""; input.style.height = "auto"; }
+});
+sendBtn.onclick = () => { send(input.value.trim()); input.value = ""; input.style.height = "auto"; };
+
+/* ================= 启动时探测后端 ================= */
+async function checkHealth(){
+  const base = apiBase ? apiBase.replace(/\/+$/,"") : "";
+  setStatus("", "检测后端…");
+  try{
+    const ctl = new AbortController();
+    setTimeout(() => ctl.abort(), 3000);
+    const r = await fetch(base + "/api/health", {signal: ctl.signal});
+    if (r.ok){ setStatus("on", "后端在线 · 可以聊天"); }
+    else setStatus("off", "后端异常");
+  }catch(e){
+    setStatus("off", apiBase ? "后端离线" : "演示模式（未连后端）");
+  }
+}
+checkHealth();
+input.focus();
+</script>
+</body>
+</html>
