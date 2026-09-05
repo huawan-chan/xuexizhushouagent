@@ -42,10 +42,25 @@ def _env_bool(key: str, default: bool = False) -> bool:
 
 @dataclass
 class Settings:
-    # Groq
+    # ===== LLM 服务商 =====
+    # llm_provider = groq | openai
+    #   openai 表示“任意 OpenAI 兼容接口”：DeepSeek / 智谱GLM / Kimi / 通义 / SiliconFlow 等，
+    #   国内网络可直接使用（Groq 在某些地区会返回 Forbidden）
+    llm_provider: str = field(
+        default_factory=lambda: os.getenv("LLM_PROVIDER", "groq").strip().lower()
+    )
+
+    # ---- Groq(默认服务商) ----
     groq_api_key: str = field(default_factory=lambda: os.getenv("GROQ_API_KEY", ""))
     groq_model: str = field(
         default_factory=lambda: os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    )
+
+    # ---- OpenAI 兼容服务商(LLM_PROVIDER=openai 时生效) ----
+    openai_api_key: str = field(default_factory=lambda: os.getenv("OPENAI_API_KEY", ""))
+    openai_base_url: str = field(default_factory=lambda: os.getenv("OPENAI_BASE_URL", ""))
+    openai_model: str = field(
+        default_factory=lambda: os.getenv("OPENAI_MODEL", "deepseek-chat")
     )
     temperature: float = field(
         default_factory=lambda: float(os.getenv("GROQ_TEMPERATURE", "0.6"))
@@ -102,14 +117,26 @@ class Settings:
     def checkpoint_db(self) -> Path:
         return CHECKPOINT_DB
 
-    def require_groq_key(self) -> str:
-        """返回 Groq key，缺失时给出清晰报错。"""
+    def require_llm_key(self) -> str:
+        """按 llm_provider 返回对应密钥；缺失/占位时给出清晰指引。"""
+        if self.llm_provider == "openai":
+            if not self.openai_api_key or self.openai_api_key.startswith("your_"):
+                raise RuntimeError(
+                    "缺少 OPENAI_API_KEY。请在 .env 中启用兼容接口：\n"
+                    "  LLM_PROVIDER=openai\n"
+                    "  OPENAI_API_KEY=你的key\n"
+                    "  OPENAI_BASE_URL=https://api.deepseek.com/v1   (按服务商填)\n"
+                    "  OPENAI_MODEL=deepseek-chat"
+                )
+            return self.openai_api_key
         if not self.groq_api_key or self.groq_api_key.startswith("your_"):
             raise RuntimeError(
                 "缺少 GROQ_API_KEY。请在项目根目录复制 .env.example 为 .env 并填入密钥：\n"
                 "  copy .env.example .env   (Windows)\n"
                 "  cp .env.example .env      (macOS / Linux)\n"
-                "密钥申请: https://console.groq.com/keys (免费)"
+                "密钥申请: https://console.groq.com/keys (免费)\n"
+                "提示: 若所在地区访问 Groq 受限(页面返回 Forbidden)，可在 .env 改用\n"
+                "  LLM_PROVIDER=openai 接入 DeepSeek / 智谱GLM / Kimi 等国内服务商。"
             )
         return self.groq_api_key
 

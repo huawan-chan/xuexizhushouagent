@@ -9,7 +9,7 @@
 | 层 | 选型 | 说明 |
 |---|---|---|
 | Agent 编排 | **LangGraph** | ReAct 循环：思考 → 调工具 → 回答；SQLite Checkpointer 管短期记忆 |
-| 大模型 | **Groq(免费)** | `llama-3.3-70b-versatile`，无需付费卡，速度快，支持工具调用 |
+| 大模型 | **Groq(免费)**，可切 OpenAI 兼容 | `llama-3.3-70b-versatile`(默认)；Groq 在部分地区受限时，一行 `.env` 配置即可切换 DeepSeek / 智谱GLM / Kimi 等 |
 | 知识库 | **Chroma + HuggingFace Embedding** | 本地向量库，免费离线 Embedding(中文用 `bge-small-zh-v1.5`) |
 | Web UI | **Chainlit**(主) + **FastAPI + SSE**(备) | 流式打字机效果；FastAPI 自带轻量页面和 API |
 | CLI | 标准库 argparse + asyncio | 命令行为主入口 |
@@ -91,8 +91,41 @@ python -m web.fastapi_app
 
 ```bash
 cp .env.example .env && docker compose up -d
-# http://localhost:8000
+# http://localhost:8000 (Chainlit) 与 http://localhost:8001 (FastAPI)
 ```
+
+---
+
+## 让别人也能用(对方不用装 Python / 申请 key)
+
+### A. 部署到云端 → 发一个网址(最省事)
+
+仓库已带自包含 `Dockerfile`，可部署到免费平台(Hugging Face Spaces / Render 等)。
+以 **Hugging Face Spaces** 为例：
+
+1. 把仓库推到 GitHub；
+2. 打开 https://huggingface.co/new-space ，**SDK 选 Docker**、空间名随意，关联你的 GitHub 仓库；
+3. Space 的 **Settings → Variables and secrets** 添加：`GROQ_API_KEY=你的key`；
+4. 等它构建完成，把生成的 `https://你的空间名.hf.space` 发给别人——对方**点开即用**。
+
+> 云端容器里没装你的 PDF，知识库检索会提示"为空"；如需上传资料，把它放进项目
+> `data/pdfs` 再构建，或用持久化存储挂载 `/app/data`。
+
+### B. 局域网分享(Docker 已装)
+
+```bash
+cp .env.example .env      # 填入 GROQ_API_KEY
+docker compose up -d
+```
+查本机局域网 IP：Windows `ipconfig` / macOS `ipconfig getifaddr en0`，
+把 `你的IP:8000` 发给同一 Wi-Fi/内网的人即可。
+
+### C. 发给对方自己跑(Windows 一键脚本)
+
+确保对方装有 Python 3.10–3.12(安装时勾选 **Add Python to PATH**)，
+把整个项目文件夹发给对方(不含 `data/`、`.venv/`)，双击 **`start.bat`**：
+自动建虚拟环境 → 装依赖 → 启动 → 打开 http://127.0.0.1:8001。
+对方仍需自行申请一个免费 Groq Key 填入 `.env`。
 
 ---
 
@@ -146,7 +179,19 @@ data: {"type":"done","answer":"完整回答"}
 
 ## 常见问题
 
-- **`RuntimeError: 缺少 GROQ_API_KEY`**：还没建 `.env` 或 key 没填。
+- **Groq 控制台/官网返回 `{"error":{"message":"Forbidden"}}`**：Groq 对部分网络地区
+  (含中国大陆)不提供服务，这是服务商限制，换浏览器/重试无效。改用 OpenAI 兼容服务商即可
+  (国内直连、有免费档)，改 `.env` 顶部后重启：
+  ```ini
+  LLM_PROVIDER=openai
+  OPENAI_API_KEY=sk-你的key
+  OPENAI_BASE_URL=https://api.deepseek.com/v1
+  OPENAI_MODEL=deepseek-chat
+  ```
+  常用免费/低价选择：DeepSeek(便宜、支持工具调用)、智谱 GLM(glm-4-flash 有免费档)、
+  SiliconFlow(注册送额度、Qwen 系列支持工具)。注意 Agent 需**支持工具调用**的模型。
+- **`RuntimeError: 缺少 GROQ_API_KEY`**：还没建 `.env` 或 key 没填（同理若缺
+  `OPENAI_API_KEY`，先确认 `.env` 里 `LLM_PROVIDER=openai` 且四项都填了）。
 - **首次建库很慢 / 需要联网**：正在下载 embedding 模型，之后离线可用。
 - **只装了 CPU 版 torch 仍慢**：Embedding 模型本身很小；也可换更小的
   `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`。

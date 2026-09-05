@@ -7,8 +7,11 @@ langchain>=1.0
 langchain-core>=1.0
 langchain-text-splitters>=1.0
 
-# ---------- Groq(免费 LLM API，需 GROQ_API_KEY) ----------
+# ---------- LLM API ----------
+# Groq(默认，免费，需 GROQ_API_KEY)
 langchain-groq>=1.0
+# OpenAI 兼容接口(备选：LLM_PROVIDER=openai 时用，可接 DeepSeek/智谱/Kimi/通义等)
+langchain-openai>=1.0
 
 # ---------- Chroma 向量库 / 本地免费 Embedding(中文推荐 bge-small-zh) ----------
 chromadb>=1.0
